@@ -7,7 +7,6 @@
 const util = require('util')
 const obterEnderecoAsync = util.promisify(obterEndereco)
 
-
 function obterUsuario() {
     //problema -> reject(ERRO)
     //quando sucesso -> resolve
@@ -44,45 +43,73 @@ function obterEndereco(idUsuario, callback) {
     }, 2000)
 }
 
-const usuarioPromise = obterUsuario()
-//para manipular o sucesso usamos a função .them
-//para manipular erros, usamos o .catch 
-//usuario -> telefone -> telefone
-usuarioPromise
-    .then(function(usuario) {
-        //vai capturar o usuario e devolver o telefone também 
-        return obterTelefone(usuario.id)
-        .then(function resolverTelefone(result) {
-            return {
-                usuario: {
-                    nome: usuario.nome, 
-                    id: usuario.id
-                }, 
-                telefone: result
-            }
-        })
-    })
-    .then(function(resultado) {
-        const endereco = obterEnderecoAsync(resultado.usuario.id)
-        return endereco
-        .then(function resolverEndereco(result) {
-            return {
-                usuario: resultado.usuario, 
-                telefone: resultado.telefone, 
-                endereco: result
-            }
-        })
-    })
-    .then(function(resultado) {
+//1º passo adicionar a palavra async na função -> automaticamente ela retornará uma Promise
+main(); //Chamo o método
+async function main() {
+    try {
+        console.time('medida-promise')
+        const usuario = await obterUsuario()
+        // const telefone = await obterTelefone(usuario.id)
+        // const endereco = await obterEnderecoAsync(usuario.id);
+        const resultado = await Promise.all([
+            //mando o array de métodos que quero executar
+            obterTelefone(usuario.id), 
+            obterEnderecoAsync(usuario.id) //o endereco não depende do telefone
+        ])
+        //posições dos meus métodos
+        const endereco = resultado[1]
+        const telefone = resultado[0]
+
         console.log(`
-        Nome: ${resultado.usuario.nome}
-        Endereco: ${resultado.endereco.rua}, ${resultado.endereco.numero}
-        Telefone: (${resultado.telefone.ddd}) ${resultado.telefone.telefone}
+            Nome: ${usuario.nome}
+            Telefone: (${telefone.ddd}) ${telefone.telefone}
+            Endereco: ${endereco.rua}, ${endereco.numero}
         `)
-    })
-    .catch(function (error) {
-        console.error('DEU RUIM', error)
-    })
+        console.timeEnd('medida-promise')
+    } catch(error) {
+        console.error('DEU RUM', error)
+    }
+}
+
+// const usuarioPromise = obterUsuario()
+// //para manipular o sucesso usamos a função .them
+// //para manipular erros, usamos o .catch 
+// //usuario -> telefone -> telefone
+// usuarioPromise
+//     .then(function(usuario) {
+//         //vai capturar o usuario e devolver o telefone também 
+//         return obterTelefone(usuario.id)
+//         .then(function resolverTelefone(result) {
+//             return {
+//                 usuario: {
+//                     nome: usuario.nome, 
+//                     id: usuario.id
+//                 }, 
+//                 telefone: result
+//             }
+//         })
+//     })
+//     .then(function(resultado) {
+//         const endereco = obterEnderecoAsync(resultado.usuario.id)
+//         return endereco
+//         .then(function resolverEndereco(result) {
+//             return {
+//                 usuario: resultado.usuario, 
+//                 telefone: resultado.telefone, 
+//                 endereco: result
+//             }
+//         })
+//     })
+//     .then(function(resultado) {
+//         console.log(`
+//         Nome: ${resultado.usuario.nome}
+//         Endereco: ${resultado.endereco.rua}, ${resultado.endereco.numero}
+//         Telefone: (${resultado.telefone.ddd}) ${resultado.telefone.telefone}
+//         `)
+//     })
+//     .catch(function (error) {
+//         console.error('DEU RUIM', error)
+//     })
 
 // obterUsuario(function resolverUsuario(error, usuario){
 //     //null || "" | 0 === false
